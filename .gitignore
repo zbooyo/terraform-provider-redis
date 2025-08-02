@@ -29,3 +29,8 @@ go.work.sum
 /example/terraform*
 
 .devcontainer/
+
+# Ignore build artifacts
+*.zip
+*.sha256
+*.sig

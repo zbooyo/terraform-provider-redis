@@ -23,17 +23,11 @@ func dataSourceRedisString() *schema.Resource {
 				Computed:    true,
 				Description: "The value stored at the Redis key.",
 			},
-			"timeout": {
+			"max_wait_seconds": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     3,
-				Description: "Timeout for the Redis GET operation in seconds.",
-			},
-			"max_retries": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Default:     10,
-				Description: "Maximum number of retries for Redis GET operation.",
+				Default:     300,
+				Description: "Maximum time in seconds to wait for the Redis key to exist and have a non-empty value.",
 			},
 		},
 	}
@@ -43,34 +37,30 @@ func dataSourceRedisStringRead(ctx context.Context, d *schema.ResourceData, m in
 	cfg := m.(*ProviderConfig)
 	key := d.Get("key").(string)
 
-	timeoutSec := d.Get("timeout").(int)
-	maxRetries := d.Get("max_retries").(int)
-
-	timeoutCtx, cancel := context.WithTimeout(ctx, time.Duration(timeoutSec)*time.Second)
-	defer cancel()
+	maxWait := d.Get("max_wait_seconds").(int)
+	deadline := time.Now().Add(time.Duration(maxWait) * time.Second)
 
 	var val string
 	var err error
 
-	for i := 0; i < maxRetries; i++ {
-		val, err = cfg.RedisClient.Get(timeoutCtx, key).Result()
-		if err == nil || err == redis.Nil {
-			break
-		}
-		time.Sleep(500 * time.Millisecond)
-	}
+	for time.Now().Before(deadline) {
+		val, err = cfg.RedisClient.Get(ctx, key).Result()
 
-	if err == redis.Nil {
-		d.SetId("")
+		if err == redis.Nil || val == "" {
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		d.SetId(key)
+		_ = d.Set("key", key)
+		_ = d.Set("value", val)
 		return nil
 	}
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
-	d.SetId(key)
-	_ = d.Set("key", key)
-	_ = d.Set("value", val)
-
+	d.SetId("")
 	return nil
 }

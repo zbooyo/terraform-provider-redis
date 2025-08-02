@@ -2,7 +2,6 @@ package redisprovider
 
 import (
 	"context"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -11,8 +10,6 @@ import (
 
 type ProviderConfig struct {
 	RedisClient *redis.Client
-	Timeout     time.Duration
-	MaxRetries  int
 }
 
 func Provider() *schema.Provider {
@@ -21,7 +18,7 @@ func Provider() *schema.Provider {
 			"redis_url": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Redis server URL, e.g. redis://localhost:6379/0",
+				Description: "Redis server URL, e.g. rediss://localhost:6379/0",
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{

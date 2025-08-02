@@ -1,11 +1,11 @@
 # Terraform Provider for Redis
 
-A Terraform provider for managing Redis keys. Useful for when Redis is used as a store for infrastructure or application configuration.
-Clone of https://github.com/rdeavila94/terraform-provider-redis repo with datasource added
+A Terraform provider for managing Redis keys. Useful for when Redis is used as a store for infrastructure or application configuration.  
+Clone of https://github.com/zbooyo/terraform-provider-redis repo with added datasource support.
 
 ## Requirements
 
-- [Terraform](https://www.terraform.io/downloads.html) >= 1.0
+- [Terraform](https://www.terraform.io/downloads.html) >= 1.0  
 - [Go](https://golang.org/doc/install) >= 1.19
 
 ## Installation
@@ -20,8 +20,8 @@ terraform init
 
 1. Download the latest release for your platform
 2. Extract the binary to your Terraform plugins directory:
-   - Linux/macOS: `~/.terraform.d/plugins/registry.terraform.io/rdeavila94/redis/`
-   - Windows: `%APPDATA%\terraform.d\plugins\registry.terraform.io\rdeavila94\redis\`
+  * Linux/macOS: ~/.terraform.d/plugins/registry.terraform.io/zbooyo/redis/
+  * Windows: %APPDATA%\terraform.d\plugins\registry.terraform.io\zbooyo\redis\
 
 ## Usage
 
@@ -31,7 +31,7 @@ terraform init
 terraform {
   required_providers {
     redis = {
-      source  = "rdeavila94/redis"
+      source  = "zbooyo/redis"
       version = "~> 0.0"
     }
   }
@@ -50,30 +50,17 @@ Manages a Redis string key-value pair.
 
 ```hcl
 resource "redis_string" "example" {
-  key   = "my_key"
-  value = "my_value"
-}
-```
-### Data sources 
-
-Fetches key value. 
-Timeout and max_retries allows datasource to wait for data, useful when waiting for outputs from another terrrafom module
-
-#### `redis_key`
-
-```hcl
-data "redis_string" "example" {
-  key = "my_key"
-  timeout = "wait_time"
-  max_retries = "retry_number"
+  key         = "my_key"
+  value       = "my_value"
+  overridable = false  # optional, defaults to false
 }
 ```
 
 **Arguments:**
 
-- `key` (Required) - The Redis key to manage
-- `value` (Required) - The string value to store
-- `overridable` (Optional) - If true, allows overriding existing Redis keys. If false, creation will fail if the key already exists. Defaults to `false`.
+- key (Required) - The Redis key to manage
+- value (Required) - The string value to store
+- overridable (Optional) - If true, allows overriding existing Redis keys. Defaults to false.
 
 **Attributes:**
 
@@ -82,9 +69,32 @@ data "redis_string" "example" {
 - `value` - The stored value
 - `overridable` - Whether the key can override existing values
 
-### Data Sources
+### Data sources 
 
-Currently, this provider does not include data sources.
+Reads the value of a Redis string key. 
+Waits until the key exists and has a non-empty value, or until a timeout is reached.
+
+#### `redis_key`
+
+```hcl
+data "redis_key" "example" {
+  key             = "my_key"
+  max_wait_seconds = 300  # Optional; defaults to 300 seconds
+}
+```
+
+**Arguments:**
+
+- `key` (Required) — The Redis key to read
+- `max_wait_seconds` (Optional) — Maximum time in seconds to wait for the Redis key to exist and have a non-empty value. Defaults to 300.
+
+**Attributes:**
+
+- `id` - The Redis key
+- `key` - The Redis key
+- `value` - The stored value
+- `overridable` - Whether the key can override existing values
+
 
 ## Examples
 
@@ -94,14 +104,14 @@ Currently, this provider does not include data sources.
 terraform {
   required_providers {
     redis = {
-      source  = "rdeavila94/redis"
+      source  = "zbooyo/redis"
       version = "~> 0.0"
     }
   }
 }
 
 provider "redis" {
-  redis_url = "redis://localhost:6379/0"
+  redis_url = "rediss://localhost:6379/0"
 }
 
 resource "redis_string" "app_config" {
@@ -112,6 +122,10 @@ resource "redis_string" "app_config" {
 resource "redis_string" "user_session" {
   key   = "user:session:12345"
   value = "active"
+}
+
+data "redis_key" "app_version" {
+  key = redis_string.app_config.key
 }
 ```
 
@@ -131,7 +145,7 @@ resource "redis_string" "existing_key" {
 ### Building from Source
 
 ```bash
-git clone https://github.com/rdeavila94/terraform-provider-redis
+git clone https://github.com/zbooyo/terraform-provider-redis
 cd terraform-provider-redis
 make build
 ```
