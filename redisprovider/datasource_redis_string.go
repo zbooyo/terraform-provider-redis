@@ -2,6 +2,7 @@ package redisprovider
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -43,10 +44,16 @@ func dataSourceRedisStringRead(ctx context.Context, d *schema.ResourceData, m in
 	var val string
 	var err error
 
+	var diags diag.Diagnostics
+
 	for time.Now().Before(deadline) {
 		val, err = cfg.RedisClient.Get(ctx, key).Result()
 
 		if err == redis.Nil || val == "" {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  fmt.Sprintf("Waiting for key %q to be available...", key),
+			})
 			time.Sleep(500 * time.Millisecond)
 			continue
 		}
@@ -58,9 +65,14 @@ func dataSourceRedisStringRead(ctx context.Context, d *schema.ResourceData, m in
 		d.SetId(key)
 		_ = d.Set("key", key)
 		_ = d.Set("value", val)
-		return nil
+		return diags
 	}
 
+	diags = append(diags, diag.Diagnostic{
+		Severity: diag.Warning,
+		Summary:  fmt.Sprintf("Timeout reached waiting for key %q", key),
+	})
+
 	d.SetId("")
-	return nil
+	return diags
 }
