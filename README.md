@@ -1,6 +1,8 @@
 # Terraform Provider for Redis
 
-A Terraform provider for managing Redis keys. Useful for when Redis is used as a store for infrastructure or application configuration.  
+A Terraform provider for managing Redis keys. Useful for when Redis is used as a store for infrastructure or application configuration.
+**A big thank you to [rdeavila94](https://github.com/rdeavila94) for creating the original version of this provider that this project is forked from!**
+
 Clone of https://github.com/zbooyo/terraform-provider-redis repo with added datasource support.
 
 ## Requirements
@@ -74,10 +76,10 @@ resource "redis_string" "example" {
 Reads the value of a Redis string key. 
 Waits until the key exists and has a non-empty value, or until a timeout is reached.
 
-#### `redis_key`
+#### `redis_string`
 
 ```hcl
-data "redis_key" "example" {
+data "redis_string" "example" {
   key             = "my_key"
   max_wait_seconds = 300  # Optional; defaults to 300 seconds
 }
@@ -93,7 +95,6 @@ data "redis_key" "example" {
 - `id` - The Redis key
 - `key` - The Redis key
 - `value` - The stored value
-- `overridable` - Whether the key can override existing values
 
 
 ## Examples
@@ -124,7 +125,7 @@ resource "redis_string" "user_session" {
   value = "active"
 }
 
-data "redis_key" "app_version" {
+data "redis_string" "app_version" {
   key = redis_string.app_config.key
 }
 ```
